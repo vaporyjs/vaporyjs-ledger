@@ -1,4 +1,4 @@
-import { vap as LedgerVaporyApi } from "ledgerco";
+import { vap as LedgerVaporyApi } from "@vaporyjs/ledgerco";
 
 import { LedgerConnectionFactory } from "./connection-factories";
 import { ErrorWithCode, WrappedError, ErrorCode } from "./errors";

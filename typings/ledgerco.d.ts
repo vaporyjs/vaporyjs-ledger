@@ -1,4 +1,4 @@
-declare module "ledgerco" {
+declare module "@vaporyjs/ledgerco" {
 	import * as Q from "q";
 
 	interface comm {

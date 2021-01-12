@@ -1,4 +1,4 @@
-import { comm as LedgerConnection, vap as LedgerVaporyApi } from "ledgerco";
+import { comm as LedgerConnection, vap as LedgerVaporyApi } from "@vaporyjs/ledgerco";
 import { Lock } from "semaphore-async-await";
 
 import { LedgerConnectionFactory } from "./connection-factories";

@@ -1,5 +1,5 @@
 import * as Q from "q";
-import { comm as LedgerConnection } from "ledgerco";
+import { comm as LedgerConnection } from "@vaporyjs/ledgerco";
 import { expect, use as chaiUse } from "chai";
 import * as chaiAsPromised from "chai-as-promised";
 import "mocha";
