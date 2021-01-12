@@ -1,4 +1,4 @@
-import { eth as LedgerEthereumApi } from "ledgerco";
+import { vap as LedgerVaporyApi } from "ledgerco";
 
 import { LedgerConnectionFactory } from "./connection-factories";
 import { ErrorWithCode, WrappedError, ErrorCode } from "./errors";
@@ -6,10 +6,10 @@ import { LockingLedgerConnection } from "./locking-ledger-connection";
 import { Network } from "./network";
 import { Signature } from "./signature";
 
-export class LedgerEthereum {
+export class LedgerVapory {
 	private network: Network;
 	private connectLedgerRequest: () => Promise<void>;
-	private openEthereumAppRequest: () => Promise<void>;
+	private openVaporyAppRequest: () => Promise<void>;
 	private switchLedgerModeRequest: () => Promise<void>;
 	private enableContractSupportRequest: () => Promise<void>;
 	private lockingLedgerConnection: LockingLedgerConnection;
@@ -18,14 +18,14 @@ export class LedgerEthereum {
 		network: Network,
 		ledgerConnectionFactory: LedgerConnectionFactory,
 		connectLedgerRequest: () => Promise<void>,
-		openEthereumAppRequest: () => Promise<void>,
+		openVaporyAppRequest: () => Promise<void>,
 		switchLedgerModeRequest: () => Promise<void>,
 		enableContractSupportRequest: () => Promise<void>,
 	) {
 		this.network = network;
 		this.lockingLedgerConnection = new LockingLedgerConnection(ledgerConnectionFactory);
 		this.connectLedgerRequest = connectLedgerRequest;
-		this.openEthereumAppRequest = openEthereumAppRequest;
+		this.openVaporyAppRequest = openVaporyAppRequest;
 		this.switchLedgerModeRequest = switchLedgerModeRequest;
 		this.enableContractSupportRequest = enableContractSupportRequest;
 	}
@@ -38,9 +38,9 @@ export class LedgerEthereum {
 	}
 
 	public getAddressByBip32Path = async (path: string): Promise<string> => {
-		return await this.lockingLedgerConnection.safelyCallEthereumApi(async ledgerEthereumApi => {
-			return await this.callLedgerWithErrorHandling(ledgerEthereumApi, async api => {
-				const publicKeyAndAddress = await ledgerEthereumApi.getAddress_async(path);
+		return await this.lockingLedgerConnection.safelyCallVaporyApi(async ledgerVaporyApi => {
+			return await this.callLedgerWithErrorHandling(ledgerVaporyApi, async api => {
+				const publicKeyAndAddress = await ledgerVaporyApi.getAddress_async(path);
 				return publicKeyAndAddress.address;
 			});
 		});
@@ -53,15 +53,15 @@ export class LedgerEthereum {
 
 	public signTransactionByBip32Path = async (hexEncodedTransaction: string, path: string = this.bip44IndexToBip32Path(0)): Promise<Signature> => {
 		if (!/^[0-9a-fA-F]*$/.test(hexEncodedTransaction)) throw new ErrorWithCode(`Transaction must be a byte array hex encoded into a string.  Received ${hexEncodedTransaction}`, ErrorCode.InvalidInput);
-		return await this.lockingLedgerConnection.safelyCallEthereumApi(async ledgerEthereumApi => {
-			return await this.callLedgerWithErrorHandling(ledgerEthereumApi, async api => {
-				const signature = await ledgerEthereumApi.signTransaction_async(path, hexEncodedTransaction);
+		return await this.lockingLedgerConnection.safelyCallVaporyApi(async ledgerVaporyApi => {
+			return await this.callLedgerWithErrorHandling(ledgerVaporyApi, async api => {
+				const signature = await ledgerVaporyApi.signTransaction_async(path, hexEncodedTransaction);
 				return Signature.fromSignature(signature);
 			});
 		});
 	}
 
-	private callLedgerWithErrorHandling = async <T>(api: LedgerEthereumApi, func: (api: LedgerEthereumApi) => Promise<T>): Promise<T> => {
+	private callLedgerWithErrorHandling = async <T>(api: LedgerVaporyApi, func: (api: LedgerVaporyApi) => Promise<T>): Promise<T> => {
 		try {
 			return await func(api);
 		} catch (error) {
@@ -69,7 +69,7 @@ export class LedgerEthereum {
 				await this.connectLedgerRequest();
 				return await this.callLedgerWithErrorHandling(api, func);
 			} else if (error === "Invalid status 6d00" || error === "Invalid status 6700") {
-				await this.openEthereumAppRequest();
+				await this.openVaporyAppRequest();
 				return await this.callLedgerWithErrorHandling(api, func);
 			} else if (error === "Invalid channel;") {
 				await this.switchLedgerModeRequest();

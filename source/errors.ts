@@ -1,6 +1,6 @@
 export enum ErrorCode {
 	DeviceNotFound,
-	EthereumAppNotOpen,
+	VaporyAppNotOpen,
 	WrongMode,
 	InvalidInput,
 	BadRequest,

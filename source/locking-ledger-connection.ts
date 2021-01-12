@@ -1,4 +1,4 @@
-import { comm as LedgerConnection, eth as LedgerEthereumApi } from "ledgerco";
+import { comm as LedgerConnection, vap as LedgerVaporyApi } from "ledgerco";
 import { Lock } from "semaphore-async-await";
 
 import { LedgerConnectionFactory } from "./connection-factories";
@@ -33,11 +33,11 @@ export class LockingLedgerConnection {
 		}
 	}
 
-	public safelyCallEthereumApi = async <T>(func: (ledgerEthereumApi: LedgerEthereumApi) => Promise<T>): Promise<T> => {
+	public safelyCallVaporyApi = async <T>(func: (ledgerVaporyApi: LedgerVaporyApi) => Promise<T>): Promise<T> => {
 		const ledgerConnection = await this.acquire();
 		try {
-			const ledgerEthereumApi = new LedgerEthereumApi(ledgerConnection);
-			return await func(ledgerEthereumApi);
+			const ledgerVaporyApi = new LedgerVaporyApi(ledgerConnection);
+			return await func(ledgerVaporyApi);
 		} finally {
 			this.release();
 		}

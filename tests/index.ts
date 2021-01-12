@@ -4,7 +4,7 @@ import { expect, use as chaiUse } from "chai";
 import * as chaiAsPromised from "chai-as-promised";
 import "mocha";
 
-import { Signature, LockingLedgerConnection, LedgerEthereum, Network, ErrorWithCode, ErrorCode } from "../source/index"
+import { Signature, LockingLedgerConnection, LedgerVapory, Network, ErrorWithCode, ErrorCode } from "../source/index"
 
 chaiUse(chaiAsPromised);
 
@@ -19,10 +19,10 @@ export function delay(milliseconds: number): Promise<void> { return new Promise<
 enum MockLedgerState {
 	Unplugged,
 	HomeScreen,
-	NonEthereumApp,
-	EthereumAppWrongMode,
-	EthereumAppContractsDisabled,
-	EthereumApp,
+	NonVaporyApp,
+	VaporyAppWrongMode,
+	VaporyAppContractsDisabled,
+	VaporyApp,
 }
 
 class MockLedgerConnection implements LedgerConnection {
@@ -41,11 +41,11 @@ class MockLedgerConnection implements LedgerConnection {
 			throw "Invalid status 6700"; // wrong length
 		}
 
-		if (this.state === MockLedgerState.NonEthereumApp) {
+		if (this.state === MockLedgerState.NonVaporyApp) {
 			throw "Invalid status 6d00";
 		}
 
-		if (this.state === MockLedgerState.EthereumAppWrongMode) {
+		if (this.state === MockLedgerState.VaporyAppWrongMode) {
 			throw "Invalid channel;";
 		}
 
@@ -106,82 +106,82 @@ describe("LockingLedgerConnection", async () => {
 
 	it("safely calls callbacks in order submitted", async () => {
 		const results: string[] = [];
-		lockingLedgerConnection.safelyCallEthereumApi(async x => { await delay(10); results.push("apple"); });
-		lockingLedgerConnection.safelyCallEthereumApi(async x => { await delay(5); results.push("banana"); });
-		await lockingLedgerConnection.safelyCallEthereumApi(async x => { results.push("cherry"); })
+		lockingLedgerConnection.safelyCallVaporyApi(async x => { await delay(10); results.push("apple"); });
+		lockingLedgerConnection.safelyCallVaporyApi(async x => { await delay(5); results.push("banana"); });
+		await lockingLedgerConnection.safelyCallVaporyApi(async x => { results.push("cherry"); })
 
 		expect(results).to.deep.equal(["apple", "banana", "cherry"]);
 	});
 });
 
-describe("LedgerEthereum", async () => {
+describe("LedgerVapory", async () => {
 	let mockLedgerConnection: MockLedgerConnection;
-	let ledgerEthereum: LedgerEthereum;
+	let ledgerVapory: LedgerVapory;
 	let connectLedgerRequest: () => Promise<void>;
-	let openEthereumAppRequest: () => Promise<void>;
+	let openVaporyAppRequest: () => Promise<void>;
 	let switchLedgerModeRequest: () => Promise<void>;
 	let enableContractSupportRequest: () => Promise<void>;
 	let connectLedgerRequestCallbacks: boolean[];
-	let openEthereumAppRequestCallbacks: boolean[];
+	let openVaporyAppRequestCallbacks: boolean[];
 	let switchLedgerModeRequestCallbacks: boolean[];
 	let enableContractSupportRequestCallbacks: boolean[];
 	beforeEach(() => {
 		const ledgerConnectionFactory = async () => { await delay(0); return mockLedgerConnection; };
 		mockLedgerConnection = new MockLedgerConnection();
-		ledgerEthereum = new LedgerEthereum(Network.Main, ledgerConnectionFactory, () => connectLedgerRequest(), () => openEthereumAppRequest(), () => switchLedgerModeRequest(), () => enableContractSupportRequest());
+		ledgerVapory = new LedgerVapory(Network.Main, ledgerConnectionFactory, () => connectLedgerRequest(), () => openVaporyAppRequest(), () => switchLedgerModeRequest(), () => enableContractSupportRequest());
 		connectLedgerRequestCallbacks = [];
-		openEthereumAppRequestCallbacks = [];
+		openVaporyAppRequestCallbacks = [];
 		switchLedgerModeRequestCallbacks = [];
 		enableContractSupportRequestCallbacks = [];
-		connectLedgerRequest = async () => { delay(0); connectLedgerRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.EthereumApp; }
-		openEthereumAppRequest = async () => { delay(0); openEthereumAppRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.EthereumApp; }
-		switchLedgerModeRequest = async () => { delay(0); switchLedgerModeRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.EthereumApp; }
-		enableContractSupportRequest = async () => { delay(0); switchLedgerModeRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.EthereumApp; }
+		connectLedgerRequest = async () => { delay(0); connectLedgerRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.VaporyApp; }
+		openVaporyAppRequest = async () => { delay(0); openVaporyAppRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.VaporyApp; }
+		switchLedgerModeRequest = async () => { delay(0); switchLedgerModeRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.VaporyApp; }
+		enableContractSupportRequest = async () => { delay(0); switchLedgerModeRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.VaporyApp; }
 	});
 
 	it("calls callback when device not plugged in", async () => {
 		mockLedgerConnection.state = MockLedgerState.Unplugged;
 
-		await ledgerEthereum.getAddressByBip44Index();
+		await ledgerVapory.getAddressByBip44Index();
 		expect(connectLedgerRequestCallbacks).to.deep.equal([true]);
-		expect(openEthereumAppRequestCallbacks).to.deep.equal([]);
+		expect(openVaporyAppRequestCallbacks).to.deep.equal([]);
 		expect(switchLedgerModeRequestCallbacks).to.deep.equal([]);
 	});
 
 	it("calls callback when on home screen", async () => {
 		mockLedgerConnection.state = MockLedgerState.HomeScreen;
 
-		await ledgerEthereum.getAddressByBip44Index();
+		await ledgerVapory.getAddressByBip44Index();
 		expect(connectLedgerRequestCallbacks).to.deep.equal([]);
-		expect(openEthereumAppRequestCallbacks).to.deep.equal([true]);
+		expect(openVaporyAppRequestCallbacks).to.deep.equal([true]);
 		expect(switchLedgerModeRequestCallbacks).to.deep.equal([]);
 	});
 
-	it("calls callback when non-ethreum app open", async () => {
-		mockLedgerConnection.state = MockLedgerState.NonEthereumApp;
+	it("calls callback when non-vapory app open", async () => {
+		mockLedgerConnection.state = MockLedgerState.NonVaporyApp;
 
-		await ledgerEthereum.getAddressByBip44Index();
+		await ledgerVapory.getAddressByBip44Index();
 		expect(connectLedgerRequestCallbacks).to.deep.equal([]);
-		expect(openEthereumAppRequestCallbacks).to.deep.equal([true]);
+		expect(openVaporyAppRequestCallbacks).to.deep.equal([true]);
 		expect(switchLedgerModeRequestCallbacks).to.deep.equal([]);
 	});
 
 	it("calls callback when in wrong mode", async () => {
-		mockLedgerConnection.state = MockLedgerState.EthereumAppWrongMode;
+		mockLedgerConnection.state = MockLedgerState.VaporyAppWrongMode;
 
-		await ledgerEthereum.getAddressByBip44Index();
+		await ledgerVapory.getAddressByBip44Index();
 		expect(connectLedgerRequestCallbacks).to.deep.equal([]);
-		expect(openEthereumAppRequestCallbacks).to.deep.equal([]);
+		expect(openVaporyAppRequestCallbacks).to.deep.equal([]);
 		expect(switchLedgerModeRequestCallbacks).to.deep.equal([true]);
 	});
 
 	it("returns address", async () => {
-		mockLedgerConnection.state = MockLedgerState.EthereumApp;
+		mockLedgerConnection.state = MockLedgerState.VaporyApp;
 
-		const address = await ledgerEthereum.getAddressByBip44Index();
+		const address = await ledgerVapory.getAddressByBip44Index();
 
 		expect(connectLedgerRequestCallbacks).to.deep.equal([]);
-		expect(openEthereumAppRequestCallbacks).to.deep.equal([]);
+		expect(openVaporyAppRequestCallbacks).to.deep.equal([]);
 		expect(switchLedgerModeRequestCallbacks).to.deep.equal([]);
 		expect(address).to.equal("0x603E360193B5dd079B445c69B9Ab7eDB46a4fAbd");
 	});
@@ -189,10 +189,10 @@ describe("LedgerEthereum", async () => {
 	it("returns address if connected during connected callback", async () => {
 		mockLedgerConnection.state = MockLedgerState.Unplugged;
 
-		const address = await ledgerEthereum.getAddressByBip44Index();
+		const address = await ledgerVapory.getAddressByBip44Index();
 
 		expect(connectLedgerRequestCallbacks).to.deep.equal([true]);
-		expect(openEthereumAppRequestCallbacks).to.deep.equal([]);
+		expect(openVaporyAppRequestCallbacks).to.deep.equal([]);
 		expect(switchLedgerModeRequestCallbacks).to.deep.equal([]);
 		expect(address).to.equal("0x603E360193B5dd079B445c69B9Ab7eDB46a4fAbd");
 	});
@@ -200,23 +200,23 @@ describe("LedgerEthereum", async () => {
 	it("flows through all steps for novice user getting address", async () => {
 		mockLedgerConnection.state = MockLedgerState.Unplugged;
 		connectLedgerRequest = async () => { delay(0); connectLedgerRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.HomeScreen; }
-		openEthereumAppRequest = async () => { delay(0); openEthereumAppRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.EthereumAppWrongMode; }
-		switchLedgerModeRequest = async () => { delay(0); switchLedgerModeRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.EthereumAppContractsDisabled; }
-		enableContractSupportRequest = async () => { delay(0); switchLedgerModeRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.EthereumApp; }
+		openVaporyAppRequest = async () => { delay(0); openVaporyAppRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.VaporyAppWrongMode; }
+		switchLedgerModeRequest = async () => { delay(0); switchLedgerModeRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.VaporyAppContractsDisabled; }
+		enableContractSupportRequest = async () => { delay(0); switchLedgerModeRequestCallbacks.push(true); mockLedgerConnection.state = MockLedgerState.VaporyApp; }
 
-		const address = await ledgerEthereum.getAddressByBip44Index();
+		const address = await ledgerVapory.getAddressByBip44Index();
 
 		expect(connectLedgerRequestCallbacks).to.deep.equal([true]);
-		expect(openEthereumAppRequestCallbacks).to.deep.equal([true]);
+		expect(openVaporyAppRequestCallbacks).to.deep.equal([true]);
 		expect(switchLedgerModeRequestCallbacks).to.deep.equal([true]);
 		expect(address).to.equal("0x603E360193B5dd079B445c69B9Ab7eDB46a4fAbd");
 	});
 
 	it("throws proper error when signature isn't in right format", async () => {
-		mockLedgerConnection.state = MockLedgerState.EthereumApp;
+		mockLedgerConnection.state = MockLedgerState.VaporyApp;
 
 		try {
-			await ledgerEthereum.signTransactionByBip44Index("letters");
+			await ledgerVapory.signTransactionByBip44Index("letters");
 			expect(false).to.be.true;
 		} catch (error) {
 			expect(error).to.be.instanceof(ErrorWithCode);
@@ -230,7 +230,7 @@ describe("LedgerEthereum", async () => {
 		connectLedgerRequest = async () => { await delay(0); throw new Error("apple"); }
 
 		try {
-			const address = await ledgerEthereum.getAddressByBip44Index();
+			const address = await ledgerVapory.getAddressByBip44Index();
 			expect(false).to.be.true;
 		} catch (error) {
 			expect(error).to.be.instanceof(Error);
@@ -239,9 +239,9 @@ describe("LedgerEthereum", async () => {
 	});
 
 	it("returns signed message", async () => {
-		mockLedgerConnection.state = MockLedgerState.EthereumApp;
+		mockLedgerConnection.state = MockLedgerState.VaporyApp;
 
-		const signature = await ledgerEthereum.signTransactionByBip44Index("e8018504e3b292008252089428ee52a8f3d6e5d15f8b131996950d7f296c7952872bd72a2487400080");
+		const signature = await ledgerVapory.signTransactionByBip44Index("e8018504e3b292008252089428ee52a8f3d6e5d15f8b131996950d7f296c7952872bd72a2487400080");
 
 		expect(signature.r).to.equal("7a808ab6985a90c9e9c07b3f7993e2dbcd0c3030ec48007f1f6a4787dc6eb504");
 		expect(signature.s).to.equal("69c711ac971e76e58b11328db4ec072d6cc71f0c0dabd1669f4ac105e08b90c1");

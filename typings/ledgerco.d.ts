@@ -22,7 +22,7 @@ declare module "ledgerco" {
 		close_async(): Q.Promise<void>;
 	}
 
-	export class eth {
+	export class vap {
 		constructor(comm: comm);
 		getAddress_async(path: string, display?: boolean, chaincode?: boolean): Q.Promise<{ publicKey: string, address: string }>;
 		signTransaction_async(path: string, rawTxHex: string): Q.Promise<Signature>;
